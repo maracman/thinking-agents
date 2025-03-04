@@ -1,0 +1,28 @@
+{
+    "name": "thinking-agents",
+    "version": "0.1.0",
+    "private": true,
+    "dependencies": {
+      "react": "^17.0.2",
+      "react-dom": "^17.0.2",
+      "lucide-react": "^0.196.0",
+      "axios": "^0.24.0"
+    },
+    "devDependencies": {
+      "@babel/core": "^7.16.0",
+      "@babel/preset-env": "^7.16.0",
+      "@babel/preset-react": "^7.16.0",
+      "babel-loader": "^8.2.3",
+      "css-loader": "^6.5.1",
+      "style-loader": "^3.3.1",
+      "webpack": "^5.64.1",
+      "webpack-cli": "^4.9.1",
+      "webpack-dev-server": "^4.5.0"
+    },
+    "scripts": {
+      "start": "webpack serve --mode development --open",
+      "build": "webpack --mode production",
+      "watch": "webpack --watch --mode development"
+    },
+    "proxy": "http://localhost:5000"
+  }

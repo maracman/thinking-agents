@@ -1,0 +1,76 @@
+{
+    "user_name": "User",
+    "len_last_history": 0,
+    "settings": {
+      "temperature": 0.7,
+      "max_tokens": 150,
+      "top_p": 0.9,
+      "seed": 42,
+      "top_k": 40,
+      "repetition_penalty": 1.1,
+      "use_gpu": true,
+      "llm": null
+    },
+    "agents_df": [
+      {
+        "agent_name": "Assistant",
+        "description": "A helpful and knowledgeable AI assistant that provides accurate information and useful advice.",
+        "goal": "To help the user accomplish their goals and provide valuable information.",
+        "target_impression": "Helpful, informative, and friendly",
+        "muted": false,
+        "environment": "default",
+        "persistance_count": 0,
+        "persistance_score": null,
+        "patience": 6,
+        "persistance": 3,
+        "last_response": "",
+        "last_narration": "",
+        "current_aim": null,
+        "suggestion": "",
+        "current_node_location": "start",
+        "personal_history": [],
+        "is_agent_generation_variables": true,
+        "generation_variables": {
+          "seed": 42,
+          "temperature": 0.7,
+          "max_tokens": 150,
+          "top_p": 0.9,
+          "use_gpu": true,
+          "llm": null
+        },
+        "impression_of_others": "",
+        "environment_changes": "",
+        "new_information": ""
+      },
+      {
+        "agent_name": "Analyst",
+        "description": "An analytical agent that examines data, identifies patterns, and provides insights based on available information.",
+        "goal": "To analyze information and provide structured insights and recommendations.",
+        "target_impression": "Analytical, precise, and detail-oriented",
+        "muted": false,
+        "environment": "default",
+        "persistance_count": 0,
+        "persistance_score": null,
+        "patience": 6,
+        "persistance": 3,
+        "last_response": "",
+        "last_narration": "",
+        "current_aim": null,
+        "suggestion": "",
+        "current_node_location": "start",
+        "personal_history": [],
+        "is_agent_generation_variables": true,
+        "generation_variables": {
+          "seed": 43,
+          "temperature": 0.6,
+          "max_tokens": 200,
+          "top_p": 0.85,
+          "use_gpu": true,
+          "llm": null
+        },
+        "impression_of_others": "",
+        "environment_changes": "",
+        "new_information": ""
+      }
+    ]
+  }

@@ -1,26 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Settings, MessageSquare, Activity, Code } from 'lucide-react';
-import { fetchPastChats } from '../services/api';
+import { ChevronLeft, ChevronRight, Settings, MessageSquare, Activity, Code, Cloud } from 'lucide-react';
+import { useSession } from '../contexts/SessionContext';
 
-const Sidebar = ({ activeTab, setActiveTab, collapsed, toggleSidebar, sessionState }) => {
+const Sidebar = ({ activeTab, setActiveTab, collapsed, toggleSidebar }) => {
+  const { sessionState, pastChats, loadPastChats } = useSession();
   const [sessionParamsOpen, setSessionParamsOpen] = useState(false);
   const [pastChatsOpen, setPastChatsOpen] = useState(false);
-  const [pastChats, setPastChats] = useState([]);
   
   useEffect(() => {
     if (pastChatsOpen) {
       loadPastChats();
     }
-  }, [pastChatsOpen]);
-  
-  const loadPastChats = async () => {
-    try {
-      const chatsData = await fetchPastChats();
-      setPastChats(chatsData.pastChats || []);
-    } catch (error) {
-      console.error("Error loading past chats:", error);
-    }
-  };
+  }, [pastChatsOpen, loadPastChats]);
   
   const handleTabClick = (tab) => {
     setActiveTab(tab);
@@ -73,6 +64,15 @@ const Sidebar = ({ activeTab, setActiveTab, collapsed, toggleSidebar, sessionSta
             >
               <Code size={18} />
               <span className="tab-text">Developer</span>
+            </button>
+            
+            {/* New LLM tab */}
+            <button
+              className={activeTab === 'llm' ? 'active' : ''}
+              onClick={() => handleTabClick('llm')}
+            >
+              <Cloud size={18} />
+              <span className="tab-text">LLM Settings</span>
             </button>
             
             <button 

@@ -19,6 +19,8 @@ from pyvis.network import Network
 import pandas as pd
 from agent.schemas import json_schemas
 import importlib
+from agent.llm_service import llm_service
+
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -32,7 +34,7 @@ os.makedirs('static', exist_ok=True)
 
 # Global variables
 global_log_queue = queue.Queue()
-offline = True  # Set to False for production using real LLM
+offline = os.environ.get('OFFLINE_MODE', 'true').lower() == 'true'
 VERSION = time.time()
 current_device = None
 
@@ -90,6 +92,11 @@ local_model_path = "/content/local_model"
 model_filename = os.path.join(local_model_path, "Meta-Llama-3-8B.Q8_0.gguf")
 model_url = "https://huggingface.co/TheBloke/Meta-Llama-3-8B-GGUF/resolve/main/Meta-Llama-3-8B.Q8_0.gguf?download=true"
 
+# Initialize LLM service configuration
+from agent.llm_service import llm_service
+llm_service.local_model_path = local_model_path
+llm_service.local_model_filename = os.path.basename(model_filename)
+
 def download_model():
     """Download the model if it doesn't exist"""
     os.makedirs(local_model_path, exist_ok=True)
@@ -107,6 +114,8 @@ def download_model():
     with open(config_path, 'w') as config_file:
         json.dump(config, config_file)
     flask_logger.info(f"Config file saved at {config_path}")
+
+
 
 def reload_agent():
     """Reload the agent module dynamically"""
@@ -210,7 +219,20 @@ def visualize_graph_pyvis(graph_file_path, session_id):
 # Load default settings for initializing a new session
 def load_default_settings(filename='defaults_session.json'):
     with open(filename, 'r') as file:
-        return json.load(file)
+        defaults = json.load(file)
+    
+    # Add LLM settings if not already present
+    if 'llm_settings' not in defaults:
+        defaults['llm_settings'] = {
+            'provider': 'local',
+            'model': os.path.basename(model_filename) if os.path.exists(model_filename) else None,
+            'temperature': 0.7,
+            'max_tokens': 150,
+            'top_p': 0.9,
+            'fallback_to_local': True
+        }
+    
+    return defaults
 
 # Generate unique session ID
 def generate_session_id():
@@ -295,6 +317,17 @@ def initialize_session():
     flask_logger.info(f"Checking persistence of session state")
     check_session_state()
     flask_logger.info("Exiting initialize_session function")
+
+    if 'llm_settings' not in session_state:
+        session_state['llm_settings'] = defaults.get('llm_settings', {
+            'provider': 'local',
+            'model': os.path.basename(model_filename) if os.path.exists(model_filename) else None,
+            'temperature': 0.7,
+            'max_tokens': 150,
+            'top_p': 0.9,
+            'fallback_to_local': True
+        })
+
     return session_state
 
 def save_current_session(session_state):
@@ -331,6 +364,49 @@ def add_single_agent_to_session(default_agent):
     flask_logger.debug(f"Updated session state: {session['state']}")
     save_current_session(session['state'])
 
+def handle_llm_error(error):
+    """Handle LLM-related errors and return appropriate responses."""
+    error_msg = str(error)
+    status_code = 500
+    
+    # API key errors
+    if "API key" in error_msg:
+        if "not set" in error_msg:
+            error_msg = "API key is not set for the selected provider. Please configure your API key in LLM Settings."
+            status_code = 401
+        elif "invalid" in error_msg.lower():
+            error_msg = "Invalid API key. Please check your API key and try again."
+            status_code = 401
+    
+    # Rate limit errors
+    elif "rate limit" in error_msg.lower() or "too many requests" in error_msg.lower():
+        error_msg = "Rate limit exceeded. Please wait a moment and try again."
+        status_code = 429
+    
+    # Connectivity errors
+    elif "connection" in error_msg.lower() or "timeout" in error_msg.lower():
+        error_msg = "Connection error. Please check your internet connection and try again."
+        status_code = 503
+    
+    # Model loading errors
+    elif "model" in error_msg.lower() and ("not found" in error_msg.lower() or "loading" in error_msg.lower()):
+        error_msg = "Error loading model. Please check that the model file exists and is accessible."
+        status_code = 404
+    
+    # Fallback message
+    else:
+        error_msg = f"LLM error: {error_msg}"
+    
+    # Log the error for debugging
+    flask_logger.error(f"LLM error ({status_code}): {error_msg}")
+    
+    return jsonify({
+        "success": False,
+        "error": error_msg,
+        "error_type": "llm_error"
+    }), status_code
+
+
 @app.before_request
 def before_request():
     flask_logger.debug(f"Before request for endpoint: {request.endpoint}")
@@ -359,6 +435,193 @@ def check_session():
         'session_contents': session.get('state', {})
     })
 
+@app.route('/get_llm_providers', methods=['GET'])
+def get_llm_providers():
+    """Get list of available LLM providers."""
+    try:
+        providers = [
+            {'id': 'openai', 'name': 'OpenAI'},
+            {'id': 'anthropic', 'name': 'Anthropic (Claude)'},
+            {'id': 'cohere', 'name': 'Cohere'},
+            {'id': 'huggingface', 'name': 'HuggingFace'},
+            {'id': 'local', 'name': 'Local Model'}
+        ]
+        
+        return jsonify({
+            "success": True,
+            "providers": providers
+        })
+    except Exception as e:
+        flask_logger.error(f"Error getting LLM providers: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+    
+@app.route('/get_llm_models', methods=['GET'])
+def get_llm_models():
+    """Get list of available models for a provider."""
+    try:
+        provider = request.args.get('provider', 'local')
+        
+        # Set the provider in the LLM service
+        llm_service.set_provider(provider)
+        
+        # Get the models
+        models = llm_service.list_models(provider)
+        
+        return jsonify({
+            "success": True,
+            "models": models
+        })
+    except Exception as e:
+        flask_logger.error(f"Error getting LLM models: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+    
+
+@app.route('/get_llm_settings', methods=['GET'])
+def get_llm_settings():
+    """Get current LLM settings."""
+    try:
+        if 'state' not in session:
+            return jsonify({"error": "No active session"}), 400
+        
+        session_state = session['state']
+        llm_settings = session_state.get('llm_settings', {})
+        
+        # Default settings if not found
+        if not llm_settings:
+            llm_settings = {
+                'provider': 'local',
+                'model': None,
+                'temperature': 0.7,
+                'max_tokens': 150,
+                'top_p': 0.9,
+                'fallback_to_local': True
+            }
+        
+        return jsonify({
+            "success": True,
+            "settings": llm_settings
+        })
+    except Exception as e:
+        flask_logger.error(f"Error getting LLM settings: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+    
+@app.route('/update_llm_settings', methods=['POST'])
+def update_llm_settings():
+    """Update LLM settings."""
+    try:
+        if 'state' not in session:
+            return jsonify({"error": "No active session"}), 400
+        
+        # Get settings from request
+        data = request.json
+        if not data:
+            return jsonify({
+                "success": False,
+                "error": "No data provided"
+            }), 400
+        
+        provider = data.get('provider')
+        model = data.get('model')
+        temperature = data.get('temperature')
+        max_tokens = data.get('max_tokens')
+        top_p = data.get('top_p')
+        fallback_to_local = data.get('fallback_to_local')
+        
+        # Update session state
+        if 'llm_settings' not in session['state']:
+            session['state']['llm_settings'] = {}
+        
+        llm_settings = session['state']['llm_settings']
+        
+        if provider:
+            llm_settings['provider'] = provider
+        if model:
+            llm_settings['model'] = model
+        if temperature is not None:
+            llm_settings['temperature'] = float(temperature)
+        if max_tokens is not None:
+            llm_settings['max_tokens'] = int(max_tokens)
+        if top_p is not None:
+            llm_settings['top_p'] = float(top_p)
+        if fallback_to_local is not None:
+            llm_settings['fallback_to_local'] = bool(fallback_to_local)
+        
+        # Save API key if provided
+        api_key = data.get('api_key')
+        api_key_provider = data.get('api_key_provider', provider)
+        
+        if api_key and api_key_provider:
+            # In a real application, you'd want to store this securely
+            # For this example, we'll assume API keys are short-lived
+            # and only kept in memory
+            llm_service.set_api_key(api_key_provider, api_key)
+        
+        save_current_session(session['state'])
+        
+        return jsonify({
+            "success": True,
+            "settings": llm_settings
+        })
+    except Exception as e:
+        flask_logger.error(f"Error updating LLM settings: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+    
+@app.route('/test_llm_configuration', methods=['POST'])
+def test_llm_configuration():
+    """Test LLM configuration."""
+    try:
+        data = request.json
+        if not data:
+            return jsonify({
+                "success": False,
+                "error": "No data provided"
+            }), 400
+        
+        provider = data.get('provider', 'local')
+        model = data.get('model')
+        api_key = data.get('api_key')
+        
+        # Set provider and API key in the LLM service
+        llm_service.set_provider(provider)
+        if api_key and provider != 'local':
+            llm_service.set_api_key(provider, api_key)
+        
+        # Test prompt
+        prompt = "Please respond with 'Configuration is working correctly'"
+        
+        # Options
+        options = {
+            'provider': provider,
+            'model': model,
+            'temperature': data.get('temperature', 0.7),
+            'max_tokens': data.get('max_tokens', 50),
+            'top_p': data.get('top_p', 0.9),
+            'fallback_to_local': data.get('fallback_to_local', True),
+            'offline_allowed': True  # Allow offline mode for testing
+        }
+        
+        # Try to generate a completion
+        response = llm_service.complete(prompt, options)
+        
+        return jsonify({
+            "success": True,
+            "response": response
+        })
+    except Exception as e:
+        return handle_llm_error(e)
+    
 @app.route('/update_session', methods=['POST'])
 def update_session():
     try:
@@ -775,6 +1038,12 @@ def generate():
         agent_mutes = session['state'].get('agent_mutes', [])
         len_last_history = session['state'].get('len_last_history', 0)
 
+        # Get LLM settings from session state
+        llm_settings = session['state'].get('llm_settings', {})
+        if llm_settings:
+            # Update settings with LLM configuration
+            settings.update(llm_settings)
+        
         # Call the main function
         flask_logger.info(f"Calling main function with: is_user={is_user}, user_name={user_name}, agent_mutes={agent_mutes}, len_last_history={len_last_history}")
         new_history, new_agents_df, logs = main(

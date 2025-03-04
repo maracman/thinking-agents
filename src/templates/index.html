@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thinking Agents</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+</head>
+<body>
+    <div id="root"></div>
+    
+    <!-- Pass session data to frontend -->
+    <script>
+        window.initialData = {
+            sessionId: "{{ session_id if session_id else '' }}"
+        };
+    </script>
+    
+    <!-- Bundle from React build process -->
+    <script src="{{ url_for('static', filename='bundle.js') }}"></script>
+</body>
+</html>

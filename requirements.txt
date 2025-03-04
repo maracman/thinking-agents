@@ -1,13 +1,13 @@
-flask==2.3.3
-flask-session==0.5.0
-werkzeug==2.3.7
-waitress==2.1.2
-requests==2.31.0
-pandas==2.1.0
-numpy==1.25.2
-networkx==3.1
-pyvis==0.3.2
-llama-cpp-python==0.2.11
-torch==2.0.1
-scipy==1.11.2
-matplotlib==3.7.2
+flask==2.3.3            # Web framework
+flask-session==0.5.0    # Session management
+werkzeug==2.3.7         # WSGI utilities for Flask
+waitress==2.1.2         # Production WSGI server
+requests==2.31.0        # HTTP requests for API calls
+pandas==2.1.0           # Data handling
+numpy==1.25.2           # Numerical operations
+networkx==3.1           # Graph operations (what was missing)
+pyvis==0.3.2            # Graph visualization
+#llama-cpp-python==0.2.11 # Local model inference
+torch==2.0.1            # PyTorch (for GPU acceleration)
+scipy==1.11.2           # Scientific computation
+matplotlib==3.7.2       # Plotting capabilities
