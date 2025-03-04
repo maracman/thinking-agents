@@ -1,0 +1,27 @@
+// Project Structure
+// thinking-agents/
+// ├── components/
+// │   ├── App.jsx                 # Main App component
+// │   ├── Sidebar.jsx             # Sidebar navigation
+// │   ├── ChatInterface.jsx       # Chat UI
+// │   ├── AgentSettings.jsx       # Agent configuration
+// │   ├── GraphView.jsx           # Graph visualization
+// │   ├── DeveloperTools.jsx      # Developer logs and tools
+// │   └── common/                 # Reusable components
+// │       ├── Button.jsx
+// │       ├── Dropdown.jsx
+// │       ├── Slider.jsx
+// │       └── Modal.jsx
+// ├── contexts/
+// │   ├── SessionContext.jsx      # Global session state
+// │   └── AgentContext.jsx        # Agent-specific state
+// ├── services/
+// │   ├── api.js                  # API communication
+// │   ├── graphService.js         # Graph visualization helpers
+// │   └── sessionService.js       # Session handling
+// ├── styles/
+// │   ├── main.css                # Global styles
+// │   └── components/             # Component-specific styles
+// ├── utils/
+// │   └── helpers.js              # Helper functions
+// └── index.js   
