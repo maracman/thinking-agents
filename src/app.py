@@ -87,8 +87,8 @@ graph_directory = os.path.join(cache_dir, 'graphs')
 
 # Model configuration
 local_model_path = "/content/local_model"
-model_filename = os.path.join(local_model_path, "Poppy_Porpoise-0.72-L3-8B-Q8_0-imat.gguf")
-model_url = "https://huggingface.co/Lewdiculous/Poppy_Porpoise-0.72-L3-8B-GGUF-IQ-Imatrix/resolve/main/Poppy_Porpoise-0.72-L3-8B-Q8_0-imat.gguf?download=true"
+model_filename = os.path.join(local_model_path, "Meta-Llama-3-8B.Q8_0.gguf")
+model_url = "https://huggingface.co/TheBloke/Meta-Llama-3-8B-GGUF/resolve/main/Meta-Llama-3-8B.Q8_0.gguf?download=true"
 
 def download_model():
     """Download the model if it doesn't exist"""
